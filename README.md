@@ -53,13 +53,18 @@ The built files will be in the `dist` directory, ready for deployment to any sta
 1. **Export Data from Jira**:
    - Go to your Jira project
    - Navigate to Issues → Search for issues
-   - Use "Export" → "Export Excel (All Fields)"
-   - Save the XLSX file
+   - Use "Export" → "Export Excel (All Fields)" or "Export CSV (All Fields)"
+   - Save the XLSX or CSV file
 
 2. **Upload to Dashboard**:
-   - Drag and drop your XLSX file or click to browse
+   - Drag and drop your XLSX or CSV file or click to browse
    - Wait for processing (large files may take a moment)
    - Explore your insights!
+
+### Supported File Formats
+
+- **XLSX/XLS**: Excel files exported from Jira
+- **CSV**: Comma-separated values with comma (`,`) as separator
 
 ### Required Jira Fields
 

@@ -81,7 +81,7 @@ export const FileUploadComponent: React.FC<FileUploadProps> = ({
         <input
           id="file-input"
           type="file"
-          accept=".xlsx,.xls"
+          accept=".xlsx,.xls,.csv"
           onChange={handleInputChange}
           disabled={isProcessing}
           className="hidden"
@@ -113,7 +113,7 @@ export const FileUploadComponent: React.FC<FileUploadProps> = ({
           {/* Upload Text */}
           <div>
             <h3 className="text-lg font-medium text-gray-900 mb-2">
-              {isProcessing ? 'Processing your file...' : 'Upload your Jira XLSX report'}
+              {isProcessing ? 'Processing your file...' : 'Upload your Jira XLSX or CSV report'}
             </h3>
             
             {!isProcessing && (
@@ -121,7 +121,7 @@ export const FileUploadComponent: React.FC<FileUploadProps> = ({
                 <p>
                   <span className="font-medium text-blue-600">Click to browse</span> or drag and drop your file here
                 </p>
-                <p>Supports .xlsx and .xls files up to 50MB</p>
+                <p>Supports .xlsx, .xls, and .csv files up to 50MB</p>
               </div>
             )}
 

@@ -22,7 +22,7 @@ describe('FileUploadComponent', () => {
   it('should render upload area with correct text', () => {
     render(<FileUploadComponent {...defaultProps} />);
     
-    expect(screen.getByText('Upload your Jira XLSX report')).toBeInTheDocument();
+    expect(screen.getByText('Upload your Jira XLSX or CSV report')).toBeInTheDocument();
     expect(screen.getByText(/Click to browse/)).toBeInTheDocument();
     expect(screen.getByText(/drag and drop/)).toBeInTheDocument();
   });
@@ -141,11 +141,11 @@ describe('FileUploadComponent', () => {
     expect(dropZone).toHaveClass('bg-red-50');
   });
 
-  it('should accept only xlsx and xls files', () => {
+  it('should accept xlsx, xls, and csv files', () => {
     render(<FileUploadComponent {...defaultProps} />);
     
     const input = document.getElementById('file-input') as HTMLInputElement;
-    expect(input).toHaveAttribute('accept', '.xlsx,.xls');
+    expect(input).toHaveAttribute('accept', '.xlsx,.xls,.csv');
   });
 
   it('should reset input value after file selection', async () => {

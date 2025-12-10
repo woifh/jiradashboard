@@ -13,7 +13,7 @@ self.onmessage = function(e) {
   try {
     switch (type) {
       case 'PARSE_XLSX':
-        handleXLSXParsing(data, id);
+        handleFileParsing(data, id);
         break;
       case 'TRANSFORM_DATA':
         handleDataTransformation(data, id);
@@ -34,36 +34,44 @@ self.onmessage = function(e) {
   }
 };
 
-function handleXLSXParsing(arrayBuffer, id) {
+function handleFileParsing(fileData, id) {
   // Update progress
   postMessage({ id, type: 'PROGRESS', progress: 10, stage: 'parsing' });
 
-  // Parse the XLSX file
-  const workbook = XLSX.read(arrayBuffer, { 
-    type: 'array',
-    cellDates: true,
-    dateNF: 'yyyy-mm-dd'
-  });
+  let rawData;
+  
+  // Check if it's CSV data (string) or XLSX data (ArrayBuffer)
+  if (typeof fileData === 'string') {
+    // Handle CSV data
+    rawData = parseCSVText(fileData);
+  } else {
+    // Handle XLSX data
+    const workbook = XLSX.read(fileData, { 
+      type: 'array',
+      cellDates: true,
+      dateNF: 'yyyy-mm-dd'
+    });
 
-  postMessage({ id, type: 'PROGRESS', progress: 30, stage: 'parsing' });
+    postMessage({ id, type: 'PROGRESS', progress: 30, stage: 'parsing' });
 
-  // Get the first worksheet
-  const worksheetName = workbook.SheetNames[0];
-  if (!worksheetName) {
-    throw new Error('No worksheets found in the file');
+    // Get the first worksheet
+    const worksheetName = workbook.SheetNames[0];
+    if (!worksheetName) {
+      throw new Error('No worksheets found in the file');
+    }
+
+    const worksheet = workbook.Sheets[worksheetName];
+    rawData = XLSX.utils.sheet_to_json(worksheet, { 
+      header: 1,
+      defval: '',
+      raw: false
+    });
   }
-
-  const worksheet = workbook.Sheets[worksheetName];
-  const rawData = XLSX.utils.sheet_to_json(worksheet, { 
-    header: 1,
-    defval: '',
-    raw: false
-  });
 
   postMessage({ id, type: 'PROGRESS', progress: 60, stage: 'parsing' });
 
   if (rawData.length === 0) {
-    throw new Error('No data found in the worksheet');
+    throw new Error('No data found in the file');
   }
 
   // Process the raw data into structured format
@@ -402,4 +410,58 @@ function calculateDateRange(processedTickets) {
   }
 
   return { start: startDate, end: endDate };
+}
+
+// CSV parsing functions
+function parseCSVText(text) {
+  const rows = [];
+  const lines = text.split(/\r?\n/);
+  
+  for (const line of lines) {
+    if (line.trim() === '') continue; // Skip empty lines
+    
+    const row = parseCSVRow(line);
+    if (row.length > 0) {
+      rows.push(row);
+    }
+  }
+  
+  return rows;
+}
+
+function parseCSVRow(line) {
+  const result = [];
+  let current = '';
+  let inQuotes = false;
+  let i = 0;
+
+  while (i < line.length) {
+    const char = line[i];
+    const nextChar = line[i + 1];
+
+    if (char === '"') {
+      if (inQuotes && nextChar === '"') {
+        // Escaped quote
+        current += '"';
+        i += 2;
+      } else {
+        // Toggle quote state
+        inQuotes = !inQuotes;
+        i++;
+      }
+    } else if (char === ',' && !inQuotes) {
+      // Field separator
+      result.push(current.trim());
+      current = '';
+      i++;
+    } else {
+      current += char;
+      i++;
+    }
+  }
+
+  // Add the last field
+  result.push(current.trim());
+
+  return result;
 }

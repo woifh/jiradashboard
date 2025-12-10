@@ -42,7 +42,15 @@ describe('XLSXParserService', () => {
       expect(service.validateFileFormat(file)).toBe(true);
     });
 
-    it('should reject non-Excel files', () => {
+    it('should accept valid CSV files', () => {
+      const file = new File([''], 'test.csv', {
+        type: 'text/csv'
+      });
+      
+      expect(service.validateFileFormat(file)).toBe(true);
+    });
+
+    it('should reject non-supported files', () => {
       const file = new File([''], 'test.txt', {
         type: 'text/plain'
       });
@@ -178,6 +186,60 @@ describe('XLSXParserService', () => {
       expect(result.tickets).toHaveLength(2);
       expect(result.tickets[0]?.key).toBe('PROJ-127');
       expect(result.tickets[1]?.key).toBe('PROJ-128');
+    });
+
+    it('should parse valid CSV file with Jira data', async () => {
+      const csvContent = `Key,Summary,Issue Type,Status,Created,Story Points,Sprint
+PROJ-200,CSV Test Ticket 1,Story,Done,2024-01-01,5,Sprint 1
+PROJ-201,"CSV Test Ticket 2, with comma",Bug,In Progress,2024-01-02,3,"Sprint 1,Sprint 2"`;
+
+      const file = new File([csvContent], 'test.csv', {
+        type: 'text/csv'
+      });
+
+      const result = await service.parseFile(file);
+
+      expect(result).toBeDefined();
+      expect(result.tickets).toHaveLength(2);
+      expect(result.tickets[0]).toMatchObject({
+        key: 'PROJ-200',
+        summary: 'CSV Test Ticket 1',
+        issueType: 'Story',
+        status: 'Done',
+        storyPoints: 5
+      });
+      expect(result.tickets[1]).toMatchObject({
+        key: 'PROJ-201',
+        summary: 'CSV Test Ticket 2, with comma',
+        issueType: 'Bug',
+        status: 'In Progress',
+        storyPoints: 3
+      });
+      expect(result.metadata.projectKeys).toContain('PROJ');
+    });
+
+    it('should handle CSV with quoted fields containing commas', async () => {
+      const csvContent = `Key,Summary,Issue Type,Status,Created
+PROJ-202,"Complex, summary with ""quotes"" and commas",Story,Done,2024-01-01`;
+
+      const file = new File([csvContent], 'test.csv', {
+        type: 'text/csv'
+      });
+
+      const result = await service.parseFile(file);
+
+      expect(result.tickets).toHaveLength(1);
+      expect(result.tickets[0]?.summary).toBe('Complex, summary with "quotes" and commas');
+    });
+
+    it('should handle empty CSV file', async () => {
+      const csvContent = '';
+
+      const file = new File([csvContent], 'empty.csv', {
+        type: 'text/csv'
+      });
+
+      await expect(service.parseFile(file)).rejects.toThrow('Failed to read CSV file content');
     });
   });
 });

@@ -9,7 +9,7 @@ import { XLSXParserService as IXLSXParserService } from '../types/services';
 import { DataValidator } from '../types/validation';
 
 export class XLSXParserService implements IXLSXParserService {
-  private static readonly SUPPORTED_EXTENSIONS = ['.xlsx', '.xls'];
+  private static readonly SUPPORTED_EXTENSIONS = ['.xlsx', '.xls', '.csv'];
   private static readonly MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
   
   // Common column mappings for Jira exports
@@ -53,47 +53,59 @@ export class XLSXParserService implements IXLSXParserService {
     const validMimeTypes = [
       'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
       'application/vnd.ms-excel',
-      'application/octet-stream' // Some browsers report this for .xlsx files
+      'application/octet-stream', // Some browsers report this for .xlsx files
+      'text/csv',
+      'application/csv',
+      'text/plain' // Some browsers report CSV as plain text
     ];
 
     return validMimeTypes.includes(file.type) || file.type === '';
   }
 
   /**
-   * Parses an XLSX file and extracts Jira ticket data
+   * Parses an XLSX or CSV file and extracts Jira ticket data
    */
   async parseFile(file: File): Promise<RawJiraData> {
     if (!this.validateFileFormat(file)) {
-      throw new Error('Invalid file format. Please upload a valid XLSX file.');
+      throw new Error('Invalid file format. Please upload a valid XLSX or CSV file.');
     }
 
     try {
-      const arrayBuffer = await this.readFileAsArrayBuffer(file);
-      const workbook = XLSX.read(arrayBuffer, { 
-        type: 'array',
-        cellDates: true,
-        dateNF: 'yyyy-mm-dd'
-      });
+      const fileName = file.name.toLowerCase();
+      let rawData: any[][];
 
-      // Get the first worksheet
-      const worksheetName = workbook.SheetNames[0];
-      if (!worksheetName) {
-        throw new Error('No worksheets found in the file');
-      }
+      if (fileName.endsWith('.csv')) {
+        // Handle CSV files
+        rawData = await this.parseCSVFile(file);
+      } else {
+        // Handle XLSX/XLS files
+        const arrayBuffer = await this.readFileAsArrayBuffer(file);
+        const workbook = XLSX.read(arrayBuffer, { 
+          type: 'array',
+          cellDates: true,
+          dateNF: 'yyyy-mm-dd'
+        });
 
-      const worksheet = workbook.Sheets[worksheetName];
-      if (!worksheet) {
-        throw new Error('Worksheet not found');
+        // Get the first worksheet
+        const worksheetName = workbook.SheetNames[0];
+        if (!worksheetName) {
+          throw new Error('No worksheets found in the file');
+        }
+
+        const worksheet = workbook.Sheets[worksheetName];
+        if (!worksheet) {
+          throw new Error('Worksheet not found');
+        }
+        
+        rawData = XLSX.utils.sheet_to_json(worksheet, { 
+          header: 1,
+          defval: '',
+          raw: false
+        }) as any[][];
       }
-      
-      const rawData = XLSX.utils.sheet_to_json(worksheet, { 
-        header: 1,
-        defval: '',
-        raw: false
-      }) as any[][];
 
       if (rawData.length === 0) {
-        throw new Error('No data found in the worksheet');
+        throw new Error('No data found in the file');
       }
 
       // Parse the data into structured format
@@ -141,6 +153,91 @@ export class XLSXParserService implements IXLSXParserService {
       
       reader.readAsArrayBuffer(file);
     });
+  }
+
+  /**
+   * Parses a CSV file and returns data as 2D array
+   */
+  private async parseCSVFile(file: File): Promise<any[][]> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const text = e.target?.result as string;
+          if (!text) {
+            reject(new Error('Failed to read CSV file content'));
+            return;
+          }
+
+          const rows = this.parseCSVText(text);
+          resolve(rows);
+        } catch (error) {
+          reject(new Error(`Failed to parse CSV: ${error instanceof Error ? error.message : 'Unknown error'}`));
+        }
+      };
+      reader.onerror = () => reject(new Error('Failed to read CSV file'));
+      reader.readAsText(file, 'utf-8');
+    });
+  }
+
+  /**
+   * Parses CSV text content into 2D array
+   * Handles quoted fields and escaped commas
+   */
+  private parseCSVText(text: string): any[][] {
+    const rows: any[][] = [];
+    const lines = text.split(/\r?\n/);
+    
+    for (const line of lines) {
+      if (line.trim() === '') continue; // Skip empty lines
+      
+      const row = this.parseCSVRow(line);
+      if (row.length > 0) {
+        rows.push(row);
+      }
+    }
+    
+    return rows;
+  }
+
+  /**
+   * Parses a single CSV row, handling quoted fields and escaped commas
+   */
+  private parseCSVRow(line: string): string[] {
+    const result: string[] = [];
+    let current = '';
+    let inQuotes = false;
+    let i = 0;
+
+    while (i < line.length) {
+      const char = line[i];
+      const nextChar = line[i + 1];
+
+      if (char === '"') {
+        if (inQuotes && nextChar === '"') {
+          // Escaped quote
+          current += '"';
+          i += 2;
+        } else {
+          // Toggle quote state
+          inQuotes = !inQuotes;
+          i++;
+        }
+      } else if (char === ',' && !inQuotes) {
+        // Field separator
+        result.push(current.trim());
+        current = '';
+        i++;
+      } else {
+        current += char;
+        i++;
+      }
+    }
+
+    // Add the last field
+    result.push(current.trim());
+
+    return result;
   }
 
   /**
