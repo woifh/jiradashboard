@@ -54,7 +54,7 @@ export class DataTransformationUtils {
       summary: rawTicket.summary,
       issueType: rawTicket.issueType,
       status: rawTicket.status,
-      parent: rawTicket.parent,
+      parentKey: rawTicket.parentKey,
       storyPoints: rawTicket.storyPoints || 0,
       createdDate,
       resolvedDate,
@@ -85,8 +85,8 @@ export class DataTransformationUtils {
 
     // Count tickets and story points for each epic
     tickets.forEach(ticket => {
-      if (ticket.parent && epicMap.has(ticket.parent)) {
-        const epic = epicMap.get(ticket.parent)!;
+      if (ticket.parentKey && epicMap.has(ticket.parentKey)) {
+        const epic = epicMap.get(ticket.parentKey)!;
         epic.ticketCount++;
         epic.totalStoryPoints += ticket.storyPoints;
         
@@ -130,11 +130,13 @@ export class DataTransformationUtils {
   static transformRawData(rawData: RawJiraData): ProcessedJiraData {
     const processedTickets = rawData.tickets.map(ticket => this.transformTicket(ticket));
     const epics = this.buildEpics(processedTickets);
+    const teams: string[] = []; // Placeholder for utility class
     const dateRange = this.calculateDateRange(processedTickets);
 
     return {
       tickets: processedTickets,
       epics,
+      teams,
       dateRange
     };
   }

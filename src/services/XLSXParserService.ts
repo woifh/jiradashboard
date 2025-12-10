@@ -18,7 +18,10 @@ export class XLSXParserService implements IXLSXParserService {
     summary: ['summary', 'title', 'description'],
     issueType: ['issue type', 'type', 'issuetype'],
     status: ['status', 'state'],
-    parent: ['parent', 'epic link', 'epic', 'parent key'],
+    parent: ['parent', 'epic link', 'epic'],
+    parentKey: ['parent key'],
+    parentSummary: ['parent summary', 'epic summary', 'parent title'],
+    team: ['custom field (team (migrated))', 'team (migrated)', 'team', 'custom field (team)'],
     storyPoints: ['story points', 'points', 'estimate', 'story point estimate'],
     created: ['created', 'creation date', 'date created'],
     resolved: ['resolved', 'resolution date', 'date resolved', 'closed'],
@@ -338,6 +341,9 @@ export class XLSXParserService implements IXLSXParserService {
 
     // Extract optional fields
     const parent = this.parseString(getValue('parent'));
+    const parentKey = this.parseString(getValue('parentKey'));
+    const parentSummary = this.parseString(getValue('parentSummary'));
+    const team = this.parseString(getValue('team'));
     const storyPoints = this.parseNumber(getValue('storyPoints'));
     const resolved = this.parseDate(getValue('resolved'));
     const sprints = this.parseSprints(getValue('sprints'));
@@ -354,6 +360,9 @@ export class XLSXParserService implements IXLSXParserService {
 
     // Add optional properties only if they have values
     if (parent) ticket.parent = parent;
+    if (parentKey) ticket.parentKey = parentKey;
+    if (parentSummary) ticket.parentSummary = parentSummary;
+    if (team) ticket.team = team;
     if (storyPoints !== undefined) ticket.storyPoints = storyPoints;
     if (resolved) ticket.resolved = resolved;
     if (originTicketType) ticket.originTicketType = originTicketType;

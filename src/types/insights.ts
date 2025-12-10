@@ -22,11 +22,27 @@ export interface TicketInsights {
 
 // Bug analysis insights
 export interface BugInsights {
+  // All bugs analysis
+  allBugStats: {
+    totalCreated: number;
+    totalClosed: number;
+    totalOpen: number;
+    averageResolutionTime: number | null; // in days
+  };
+  // Escaped bugs analysis (subset of all bugs)
   escapedBugStats: {
     totalCreated: number;
     totalClosed: number;
+    totalOpen: number;
+    percentageOfAllBugs: number;
   };
+  // Bug trends over time
   monthlyTrends: MonthlyBugTrend[];
+  allBugMonthlyTrends: MonthlyBugTrend[];
+  // Bug insights
+  oldestOpenBug: ProcessedTicket | null;
+  mostRecentBug: ProcessedTicket | null;
+  bugsByStatus: { status: string; count: number }[];
 }
 
 // Achievement and milestone tracking

@@ -84,20 +84,58 @@ export class InsightsEngine implements IInsightsEngine {
   }
 
   /**
-   * Generates bug analysis insights
+   * Generates comprehensive bug analysis insights
    */
   generateBugInsights(data: ProcessedJiraData): BugInsights {
+    // Filter all bugs (any ticket with issue type 'Bug')
+    const allBugs = data.tickets.filter(ticket => 
+      ticket.issueType.toLowerCase() === 'bug'
+    );
+    
+    // Filter escaped bugs (bugs with origin ticket type)
     const escapedBugs = data.tickets.filter(ticket => ticket.isEscapedBug);
-    const escapedBugStats = {
-      totalCreated: escapedBugs.length,
-      totalClosed: escapedBugs.filter(bug => this.isTicketClosed(bug.status)).length
+    
+    // Calculate all bugs statistics
+    const allBugsClosed = allBugs.filter(bug => this.isTicketClosed(bug.status));
+    const allBugsOpen = allBugs.filter(bug => !this.isTicketClosed(bug.status));
+    
+    const allBugStats = {
+      totalCreated: allBugs.length,
+      totalClosed: allBugsClosed.length,
+      totalOpen: allBugsOpen.length,
+      averageResolutionTime: this.calculateAverageResolutionTime(allBugsClosed)
     };
 
-    const monthlyTrends = this.calculateMonthlyBugTrends(data.tickets);
+    // Calculate escaped bugs statistics
+    const escapedBugsClosed = escapedBugs.filter(bug => this.isTicketClosed(bug.status));
+    const escapedBugsOpen = escapedBugs.filter(bug => !this.isTicketClosed(bug.status));
+    
+    const escapedBugStats = {
+      totalCreated: escapedBugs.length,
+      totalClosed: escapedBugsClosed.length,
+      totalOpen: escapedBugsOpen.length,
+      percentageOfAllBugs: allBugs.length > 0 ? Math.round((escapedBugs.length / allBugs.length) * 100) : 0
+    };
+
+    // Calculate monthly trends for both escaped and all bugs
+    const monthlyTrends = this.calculateMonthlyBugTrends(escapedBugs);
+    const allBugMonthlyTrends = this.calculateMonthlyBugTrends(allBugs);
+
+    // Find oldest open bug and most recent bug
+    const oldestOpenBug = this.findOldestOpenBug(allBugsOpen);
+    const mostRecentBug = this.findMostRecentBug(allBugs);
+
+    // Calculate bugs by status
+    const bugsByStatus = this.calculateBugsByStatus(allBugs);
 
     return {
+      allBugStats,
       escapedBugStats,
-      monthlyTrends
+      monthlyTrends,
+      allBugMonthlyTrends,
+      oldestOpenBug,
+      mostRecentBug,
+      bugsByStatus
     };
   }
 
@@ -394,10 +432,9 @@ export class InsightsEngine implements IInsightsEngine {
   }
 
   /**
-   * Calculates monthly bug trends
+   * Calculates monthly bug trends for the provided bug tickets
    */
-  private calculateMonthlyBugTrends(tickets: ProcessedTicket[]) {
-    const bugs = tickets.filter(ticket => ticket.isEscapedBug);
+  private calculateMonthlyBugTrends(bugs: ProcessedTicket[]) {
     const monthlyData = new Map<string, { created: number; closed: number }>();
 
     // Count created bugs by month
@@ -455,5 +492,75 @@ export class InsightsEngine implements IInsightsEngine {
   private isTicketClosed(status: string): boolean {
     const closedStatuses = ['done', 'closed', 'resolved'];
     return closedStatuses.includes(status.toLowerCase());
+  }
+
+  /**
+   * Calculates average resolution time for closed bugs
+   */
+  private calculateAverageResolutionTime(closedBugs: ProcessedTicket[]): number | null {
+    const bugsWithDuration = closedBugs.filter(bug => bug.duration !== undefined);
+    
+    if (bugsWithDuration.length === 0) {
+      return null;
+    }
+
+    const totalDuration = bugsWithDuration.reduce((sum, bug) => sum + (bug.duration || 0), 0);
+    return Math.round(totalDuration / bugsWithDuration.length);
+  }
+
+  /**
+   * Finds the oldest open bug
+   */
+  private findOldestOpenBug(openBugs: ProcessedTicket[]): ProcessedTicket | null {
+    if (openBugs.length === 0) {
+      return null;
+    }
+
+    return openBugs.reduce((oldest, current) => {
+      if (current.createdDate < oldest.createdDate) {
+        return current;
+      }
+      if (current.createdDate.getTime() === oldest.createdDate.getTime()) {
+        // Tie-breaker: alphabetical by key
+        return current.key.localeCompare(oldest.key) < 0 ? current : oldest;
+      }
+      return oldest;
+    });
+  }
+
+  /**
+   * Finds the most recently created bug
+   */
+  private findMostRecentBug(bugs: ProcessedTicket[]): ProcessedTicket | null {
+    if (bugs.length === 0) {
+      return null;
+    }
+
+    return bugs.reduce((newest, current) => {
+      if (current.createdDate > newest.createdDate) {
+        return current;
+      }
+      if (current.createdDate.getTime() === newest.createdDate.getTime()) {
+        // Tie-breaker: alphabetical by key
+        return current.key.localeCompare(newest.key) < 0 ? current : newest;
+      }
+      return newest;
+    });
+  }
+
+  /**
+   * Calculates bug distribution by status
+   */
+  private calculateBugsByStatus(bugs: ProcessedTicket[]): { status: string; count: number }[] {
+    const statusCount = new Map<string, number>();
+
+    bugs.forEach(bug => {
+      const status = bug.status;
+      statusCount.set(status, (statusCount.get(status) || 0) + 1);
+    });
+
+    return Array.from(statusCount.entries())
+      .map(([status, count]) => ({ status, count }))
+      .sort((a, b) => b.count - a.count); // Sort by count descending
   }
 }

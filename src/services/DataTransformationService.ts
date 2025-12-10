@@ -38,12 +38,16 @@ export class DataTransformationService implements IDataTransformationService {
     // Build epic aggregations
     const epics = this.buildEpicAggregations(processedTickets, rawData.tickets);
     
+    // Extract unique teams
+    const teams = this.extractUniqueTeams(rawData.tickets);
+    
     // Calculate date range
     const dateRange = this.calculateDateRange(processedTickets);
 
     return {
       tickets: processedTickets,
       epics,
+      teams,
       dateRange
     };
   }
@@ -95,7 +99,7 @@ export class DataTransformationService implements IDataTransformationService {
       summary: rawTicket.summary,
       issueType: rawTicket.issueType,
       status: rawTicket.status,
-      parent: rawTicket.parent,
+      parentKey: rawTicket.parentKey,
       storyPoints,
       createdDate,
       resolvedDate: resolvedDate || undefined,
@@ -203,31 +207,26 @@ export class DataTransformationService implements IDataTransformationService {
   private buildEpicAggregations(processedTickets: ProcessedTicket[], rawTickets: RawJiraTicket[]): Epic[] {
     const epicMap = new Map<string, Epic>();
 
-    // Initialize epics from tickets that have parents
-    for (const ticket of processedTickets) {
-      if (ticket.parent) {
-        if (!epicMap.has(ticket.parent)) {
-          // Find the epic name from raw tickets or use the key as fallback
-          const epicName = this.findEpicName(ticket.parent, rawTickets) || ticket.parent;
-          
-          epicMap.set(ticket.parent, {
-            key: ticket.parent,
-            name: epicName,
-            ticketCount: 0,
-            totalStoryPoints: 0,
-            completedTickets: 0
-          });
-        }
-      }
-    }
-
-    // Also check for tickets that are themselves epics
+    // Step 1: First identify all epic tickets and create the epic entries
     for (const ticket of processedTickets) {
       if (ticket.issueType.toLowerCase() === 'epic') {
-        if (!epicMap.has(ticket.key)) {
-          epicMap.set(ticket.key, {
-            key: ticket.key,
-            name: ticket.summary,
+        epicMap.set(ticket.key, {
+          key: ticket.key,
+          name: ticket.summary,
+          ticketCount: 0,
+          totalStoryPoints: 0,
+          completedTickets: 0
+        });
+      }
+    }
+
+    // Step 2: Build epics from parentKey and parentSummary fields (ignore parent field)
+    for (const rawTicket of rawTickets) {
+      if (rawTicket.parentKey && rawTicket.parentSummary) {
+        if (!epicMap.has(rawTicket.parentKey)) {
+          epicMap.set(rawTicket.parentKey, {
+            key: rawTicket.parentKey,
+            name: rawTicket.parentSummary,
             ticketCount: 0,
             totalStoryPoints: 0,
             completedTickets: 0
@@ -236,10 +235,10 @@ export class DataTransformationService implements IDataTransformationService {
       }
     }
 
-    // Aggregate ticket data for each epic
+    // Step 3: Aggregate ticket data for each epic using parentKey
     for (const ticket of processedTickets) {
-      if (ticket.parent && epicMap.has(ticket.parent)) {
-        const epic = epicMap.get(ticket.parent);
+      if (ticket.parentKey && epicMap.has(ticket.parentKey)) {
+        const epic = epicMap.get(ticket.parentKey);
         if (epic) {
           epic.ticketCount++;
           epic.totalStoryPoints += ticket.storyPoints;
@@ -256,15 +255,25 @@ export class DataTransformationService implements IDataTransformationService {
     return Array.from(epicMap.values()).filter(epic => epic.ticketCount > 0);
   }
 
+
+
+
+
   /**
-   * Finds the epic name from raw tickets
+   * Extracts unique team names from raw tickets
    */
-  private findEpicName(epicKey: string, rawTickets: RawJiraTicket[]): string | null {
-    const epicTicket = rawTickets.find(ticket => 
-      ticket.key === epicKey && ticket.issueType?.toLowerCase() === 'epic'
-    );
+  private extractUniqueTeams(rawTickets: RawJiraTicket[]): string[] {
+    const teamSet = new Set<string>();
     
-    return epicTicket?.summary || null;
+    for (const ticket of rawTickets) {
+      if (ticket.team && ticket.team.trim()) {
+        // Handle multiple teams separated by commas
+        const teams = ticket.team.split(',').map(team => team.trim()).filter(team => team);
+        teams.forEach(team => teamSet.add(team));
+      }
+    }
+    
+    return Array.from(teamSet).sort();
   }
 
   /**

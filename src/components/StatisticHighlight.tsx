@@ -4,6 +4,7 @@
  */
 
 import React from 'react';
+import { renderTicketText } from '../utils/ticketLinks';
 
 export interface StatisticHighlightProps {
   title: string;
@@ -124,7 +125,7 @@ export const StatisticHighlight: React.FC<StatisticHighlightProps> = ({
         {/* Subtitle */}
         {subtitle && (
           <p className={`${sizes.subtitle} ${styles.subtitle} mb-3 font-medium`}>
-            {subtitle}
+            {renderTicketText(subtitle, `hover:${styles.subtitle.replace('text-', 'text-opacity-80 text-')} hover:underline`)}
           </p>
         )}
 

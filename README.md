@@ -6,9 +6,10 @@ Transform your Jira XLSX exports into engaging insights, achievements, and fun f
 
 - **📊 Comprehensive Analytics**: Epic rankings, ticket patterns, and team performance metrics
 - **🏆 Achievement Highlights**: Celebrate milestones and accomplishments with visual badges
-- **🐛 Bug Analysis**: Track escaped bugs with trend charts and cumulative statistics
+- **🐛 Comprehensive Bug Analysis**: Track all bugs and escaped bugs with detailed metrics, trends, and insights
 - **💡 Improvement Insights**: Constructive suggestions for process optimization
 - **🎉 Fun Facts**: Discover interesting patterns in ticket naming, duration, and activity
+- **🔗 Clickable Ticket Links**: All ticket keys are clickable and open directly in Jira (new tab)
 - **⚡ Performance Optimized**: Web Workers for heavy data processing
 - **📱 Responsive Design**: Works seamlessly on desktop and mobile devices
 - **♿ Accessible**: Full keyboard navigation and screen reader support
@@ -78,7 +79,8 @@ The dashboard requires these fields in your export:
 ### Optional Fields (for enhanced insights)
 
 - **Story Points** (for effort analysis)
-- **Parent/Epic Link** (for epic aggregations)
+- **Parent key** and **Parent summary** (for epic aggregations with proper key and name display)
+- **Custom field (Team (migrated))** (for team-specific dashboard headlines)
 - **Resolved** (for duration calculations)
 - **Sprint** (for sprint change analysis)
 - **Origin Ticket Type** (for escaped bug detection)
@@ -100,15 +102,29 @@ The dashboard requires these fields in your export:
 - Busiest creation and closure days
 - Summary length extremes
 
-### 🐛 Bug Analysis
-- Escaped bug trends over time
-- Monthly creation vs. closure rates
-- Cumulative open bug tracking
+### 🐛 Comprehensive Bug Analysis
+- **All Bugs Overview**: Total bugs, resolved, open, and average resolution time
+- **Escaped Bug Analysis**: Dedicated section for bugs found externally (UAT, production)
+- **Bug Trends**: Separate trend charts for all bugs and escaped bugs over time
+- **Bug Insights**: Oldest open bug, most recent bug, and distribution by status
+- **Escape Rate**: Percentage of bugs that escaped to external environments
+- **Resolution Metrics**: Average time to resolve bugs with duration tracking
 
 ### 💡 Process Improvements
 - Sprint stability recommendations
 - Duration optimization suggestions
 - Quality improvement areas
+
+### 🔗 Interactive Features
+- **Clickable Ticket Links**: All ticket keys (e.g., GCUI-25286, GGDM-15772) are automatically detected and made clickable
+- **Direct Jira Access**: Click any ticket key to open it directly in your Jira instance (opens in new tab)
+- **Smart Detection**: Works in epic titles, ticket statistics, and anywhere ticket keys appear
+
+### 👥 Team-Specific Insights
+- **Dynamic Headlines**: Dashboard title automatically includes team names from your data
+- **Multi-Team Support**: Displays all teams when data contains multiple teams
+- **Smart Extraction**: Handles comma-separated teams in single fields
+- **Team Context**: Subtitle provides context about which teams the insights represent
 
 ## 🛠 Technical Details
 

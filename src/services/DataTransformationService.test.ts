@@ -131,7 +131,8 @@ describe('DataTransformationService', () => {
           summary: 'Story under epic',
           issueType: 'Story',
           status: 'Done',
-          parent: 'PROJ-100',
+          parentKey: 'PROJ-100',
+          parentSummary: 'Epic ticket',
           storyPoints: 3,
           created: '2024-01-02T00:00:00.000Z',
           sprints: ['Sprint 1']
@@ -141,7 +142,8 @@ describe('DataTransformationService', () => {
           summary: 'Another story under epic',
           issueType: 'Story',
           status: 'Done',
-          parent: 'PROJ-100',
+          parentKey: 'PROJ-100',
+          parentSummary: 'Epic ticket',
           storyPoints: 5,
           created: '2024-01-03T00:00:00.000Z',
           sprints: ['Sprint 1']

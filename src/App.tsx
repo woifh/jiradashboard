@@ -82,9 +82,19 @@ function App() {
             <div>
               <h1 className="text-3xl font-bold text-gray-900">
                 🎯 Jira Insights Dashboard
+                {state.processedData?.teams && state.processedData.teams.length > 0 && (
+                  <span className="text-2xl font-medium text-blue-600 ml-3">
+                    - {state.processedData.teams.join(', ')}
+                  </span>
+                )}
               </h1>
               <p className="text-gray-600 mt-1">
                 Transform your Jira data into engaging insights and fun facts
+                {state.processedData?.teams && state.processedData.teams.length > 0 && (
+                  <span className="ml-1">
+                    for {state.processedData.teams.length === 1 ? 'team' : 'teams'} {state.processedData.teams.join(', ')}
+                  </span>
+                )}
               </p>
             </div>
             {state.insights && (
@@ -185,7 +195,7 @@ function App() {
                     {state.insights.epic.topByTicketCount.map((epic, index) => (
                       <InsightCard
                         key={epic.key}
-                        title={`#${index + 1} ${epic.name}`}
+                        title={`#${index + 1} ${epic.key}: ${epic.name}`}
                         value={epic.ticketCount}
                         description={`${epic.completedTickets} completed tickets`}
                         icon={index === 0 ? '🥇' : index === 1 ? '🥈' : '🥉'}
@@ -203,7 +213,7 @@ function App() {
                     {state.insights.epic.topByStoryPoints.map((epic, index) => (
                       <InsightCard
                         key={epic.key}
-                        title={`#${index + 1} ${epic.name}`}
+                        title={`#${index + 1} ${epic.key}: ${epic.name}`}
                         value={epic.totalStoryPoints}
                         description={`${epic.completedTickets} completed tickets`}
                         icon={index === 0 ? '🥇' : index === 1 ? '🥈' : '🥉'}
@@ -258,35 +268,148 @@ function App() {
             </section>
 
             {/* Bug Analysis */}
-            {state.insights.bug.monthlyTrends.length > 0 && (
+            {(state.insights.bug.allBugStats.totalCreated > 0 || state.insights.bug.monthlyTrends.length > 0) && (
               <section>
                 <h2 className="text-2xl font-semibold text-gray-800 mb-6">
                   🐛 Bug Analysis
                 </h2>
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                  <div className="lg:col-span-2">
-                    <TrendChart
-                      data={state.insights.bug.monthlyTrends}
-                      title="Escaped Bug Trends"
-                      height={300}
-                    />
+                
+                {/* Overall Bug Statistics */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                  <InsightCard
+                    title="Total Bugs"
+                    value={state.insights.bug.allBugStats.totalCreated}
+                    description="All bugs identified in the project"
+                    icon="🐛"
+                    color="red"
+                  />
+                  <InsightCard
+                    title="Bugs Resolved"
+                    value={state.insights.bug.allBugStats.totalClosed}
+                    description="Bugs that have been fixed"
+                    icon="✅"
+                    color="green"
+                  />
+                  <InsightCard
+                    title="Open Bugs"
+                    value={state.insights.bug.allBugStats.totalOpen}
+                    description="Bugs still awaiting resolution"
+                    icon="⏳"
+                    color="yellow"
+                  />
+                  <InsightCard
+                    title="Avg Resolution Time"
+                    value={state.insights.bug.allBugStats.averageResolutionTime ? `${state.insights.bug.allBugStats.averageResolutionTime} days` : "N/A"}
+                    description="Average time to resolve bugs"
+                    icon="⏱️"
+                    color="blue"
+                  />
+                </div>
+
+                {/* Bug Trends Charts */}
+                {state.insights.bug.allBugMonthlyTrends.length > 0 && (
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+                    <div>
+                      <TrendChart
+                        data={state.insights.bug.allBugMonthlyTrends}
+                        title="All Bug Trends"
+                        height={300}
+                      />
+                    </div>
+                    {state.insights.bug.monthlyTrends.length > 0 && (
+                      <div>
+                        <TrendChart
+                          data={state.insights.bug.monthlyTrends}
+                          title="Escaped Bug Trends"
+                          height={300}
+                        />
+                      </div>
+                    )}
                   </div>
-                  <div className="space-y-4">
-                    <InsightCard
-                      title="Total Escaped Bugs"
-                      value={state.insights.bug.escapedBugStats.totalCreated}
-                      description="Bugs found externally (UAT, production, etc.)"
-                      icon="🚨"
-                      color="red"
-                    />
-                    <InsightCard
-                      title="Bugs Resolved"
-                      value={state.insights.bug.escapedBugStats.totalClosed}
-                      description="Escaped bugs that have been fixed"
-                      icon="✅"
-                      color="green"
-                    />
+                )}
+
+                {/* Escaped Bug Analysis */}
+                {state.insights.bug.escapedBugStats.totalCreated > 0 && (
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-6 mb-8">
+                    <h3 className="text-lg font-semibold text-red-800 mb-4">
+                      🚨 Escaped Bug Analysis
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                      <InsightCard
+                        title="Escaped Bugs"
+                        value={state.insights.bug.escapedBugStats.totalCreated}
+                        description="Bugs found externally (UAT, production, etc.)"
+                        icon="🚨"
+                        color="red"
+                        size="small"
+                      />
+                      <InsightCard
+                        title="Escaped Resolved"
+                        value={state.insights.bug.escapedBugStats.totalClosed}
+                        description="Escaped bugs that have been fixed"
+                        icon="✅"
+                        color="green"
+                        size="small"
+                      />
+                      <InsightCard
+                        title="Escaped Open"
+                        value={state.insights.bug.escapedBugStats.totalOpen}
+                        description="Escaped bugs still open"
+                        icon="⚠️"
+                        color="yellow"
+                        size="small"
+                      />
+                      <InsightCard
+                        title="Escape Rate"
+                        value={`${state.insights.bug.escapedBugStats.percentageOfAllBugs}%`}
+                        description="Percentage of all bugs that escaped"
+                        icon="📊"
+                        color="purple"
+                        size="small"
+                      />
+                    </div>
                   </div>
+                )}
+
+                {/* Bug Insights */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {state.insights.bug.oldestOpenBug && (
+                    <StatisticHighlight
+                      title="Oldest Open Bug"
+                      value={Math.ceil((new Date().getTime() - state.insights.bug.oldestOpenBug.createdDate.getTime()) / (1000 * 60 * 60 * 24))}
+                      subtitle={state.insights.bug.oldestOpenBug.key}
+                      description={state.insights.bug.oldestOpenBug.summary}
+                      icon="🕰️"
+                      variant="curious"
+                    />
+                  )}
+                  
+                  {state.insights.bug.mostRecentBug && (
+                    <StatisticHighlight
+                      title="Most Recent Bug"
+                      value={Math.ceil((new Date().getTime() - state.insights.bug.mostRecentBug.createdDate.getTime()) / (1000 * 60 * 60 * 24))}
+                      subtitle={state.insights.bug.mostRecentBug.key}
+                      description={state.insights.bug.mostRecentBug.summary}
+                      icon="🆕"
+                      variant="default"
+                    />
+                  )}
+
+                  {state.insights.bug.bugsByStatus.length > 0 && (
+                    <div className="bg-white border border-gray-200 rounded-lg p-6">
+                      <h4 className="text-lg font-semibold text-gray-800 mb-4">
+                        📋 Bugs by Status
+                      </h4>
+                      <div className="space-y-2">
+                        {state.insights.bug.bugsByStatus.slice(0, 5).map((statusData) => (
+                          <div key={statusData.status} className="flex justify-between items-center">
+                            <span className="text-sm text-gray-600">{statusData.status}</span>
+                            <span className="font-medium text-gray-900">{statusData.count}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </section>
             )}

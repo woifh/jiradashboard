@@ -4,6 +4,7 @@
  */
 
 import React from 'react';
+import { parseAndLinkTickets } from '../utils/ticketLinks';
 
 export interface InsightCardProps {
   title: string;
@@ -94,7 +95,7 @@ export const InsightCard: React.FC<InsightCardProps> = ({
               </span>
             )}
             <h3 className="text-sm font-medium text-gray-600 uppercase tracking-wide">
-              {title}
+              {parseAndLinkTickets(title, 'text-gray-600 hover:text-gray-800')}
             </h3>
             {trend && getTrendIcon()}
           </div>

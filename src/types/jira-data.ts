@@ -9,6 +9,9 @@ export interface RawJiraTicket {
   issueType: string;
   status: string;
   parent?: string;
+  parentKey?: string;
+  parentSummary?: string;
+  team?: string;
   storyPoints?: number;
   created: string;
   resolved?: string;
@@ -30,7 +33,7 @@ export interface ProcessedTicket {
   summary: string;
   issueType: string;
   status: string;
-  parent: string | undefined;
+  parentKey: string | undefined;
   storyPoints: number;
   createdDate: Date;
   resolvedDate: Date | undefined;
@@ -51,6 +54,7 @@ export interface Epic {
 export interface ProcessedJiraData {
   tickets: ProcessedTicket[];
   epics: Epic[];
+  teams: string[];
   dateRange: {
     start: Date;
     end: Date;
